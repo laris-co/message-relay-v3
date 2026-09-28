@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { pb } from "./pb.ts";
+import { Header, Icon } from "./ui.tsx";
 
 // Webhook endpoints (superusers only): add a bot, get its URL to paste into LINE / GitHub. The URL
 // base is PocketBase's Settings → Application → Application URL (the public address), else this page's.
@@ -18,7 +19,7 @@ function randomSecret(): string {
   return btoa(String.fromCharCode(...b)).replace(/[+/=]/g, "").slice(0, 32);
 }
 
-export function Endpoints() {
+export function Endpoints({ nav }: { nav: ReactNode }) {
   const [rows, setRows] = useState<Endpoint[]>([]);
   const [base, setBase] = useState(window.location.origin);
   const [baseSet, setBaseSet] = useState(false);
@@ -42,6 +43,8 @@ export function Endpoints() {
   const urlOf = (e: { kind: string; name: string }) => `${base}/w/${e.kind}/${e.name}`;
 
   return (
+    <div className="app">
+    <Header nav={nav} />
     <div className="endpoints">
       <h2>Webhook endpoints</h2>
       {!baseSet && (
@@ -56,14 +59,14 @@ export function Endpoints() {
               <td>{e.name}</td>
               <td><code>{urlOf(e)}</code></td>
               <td>
-                <button onClick={() => navigator.clipboard.writeText(urlOf(e))}>copy URL</button>
-                <button onClick={() => pb.collection("endpoints").update(e.id, { enabled: !e.enabled }).then(load)}>
-                  {e.enabled ? "disable" : "enable"}
+                <button className="btn" onClick={() => navigator.clipboard.writeText(urlOf(e))}>Copy URL</button>
+                <button className="btn quiet" onClick={() => pb.collection("endpoints").update(e.id, { enabled: !e.enabled }).then(load)}>
+                  {e.enabled ? "Disable" : "Enable"}
                 </button>
               </td>
             </tr>
           ))}
-          {!rows.length && <tr><td colSpan={4} className="type">No endpoints yet.</td></tr>}
+          {!rows.length && <tr><td colSpan={4} className="muted">No endpoints yet. Add the first one below.</td></tr>}
         </tbody>
       </table>
 
@@ -96,18 +99,19 @@ export function Endpoints() {
           onChange={(e) => setSecret(e.target.value)}
           required={kind === "line"}
         />
-        <button>Add</button>
-        <p className="type">{HELP[kind]}</p>
+        <button className="btn primary"><Icon name="plus" /> Add</button>
+        <p className="muted help">{HELP[kind]}</p>
       </form>
       {error && <p className="error">{error}</p>}
       {shown && (
         <div className="shown">
-          <p>URL: <code>{shown.url}</code> <button onClick={() => navigator.clipboard.writeText(shown.url)}>copy</button></p>
+          <p>URL: <code>{shown.url}</code> <button className="btn" onClick={() => navigator.clipboard.writeText(shown.url)}>Copy</button></p>
           {shown.secret && (
-            <p>Secret (shown once): <code>{shown.secret}</code> <button onClick={() => navigator.clipboard.writeText(shown.secret)}>copy</button></p>
+            <p>Secret (shown once): <code>{shown.secret}</code> <button className="btn" onClick={() => navigator.clipboard.writeText(shown.secret)}>Copy</button></p>
           )}
         </div>
       )}
+    </div>
     </div>
   );
 }
