@@ -311,3 +311,16 @@ button.name:hover { text-decoration: underline dotted; text-underline-offset: 3p
 .made { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid var(--accent-line); border-radius: 8px; background: var(--accent-soft); cursor: pointer; }
 .made code { flex: 1; font-size: 13px; word-break: break-all; }
 .ep-name { font-weight: 600; white-space: nowrap; }
+
+/* landing (v1's Webhook Relay / v2's login): what it is, how to use it, sign in */
+.landing { max-width: 720px; margin: 0 auto; padding: 48px 24px; display: grid; gap: 16px; }
+.landing h1 { margin: 0; font-size: 26px; font-weight: 650; }
+.landing h1 span { color: var(--accent-text); }
+.landing > p { margin: -8px 0 0; }
+.landing h2 { margin: 0 0 10px; font-size: 16px; }
+.landing-usage { padding: 20px; }
+.landing-usage pre { margin: 0; padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); overflow-x: auto; font-size: 13px; }
+.landing-usage p { margin: 12px 0 0; font-size: 13px; }
+.landing-login { display: grid; gap: 10px; padding: 20px; max-width: 380px; }
+.landing-login input { height: 38px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--bg); font-family: var(--mono); }
+.landing-login button { height: 38px; border: 0; border-radius: 8px; background: var(--accent); color: var(--on-accent); font-weight: 600; }

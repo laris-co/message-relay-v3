@@ -45,37 +45,42 @@ function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const base = new URL(".", window.location.href).href.replace(/\/$/, "");
   return (
-    <main className="login">
-      <form
-        className="card"
-        onSubmit={async (e) => {
-          e.preventDefault();
-          setBusy(true);
-          setError("");
-          try {
-            await signIn(email, password);
-          } catch {
-            setError("Wrong email or password.");
-          } finally {
-            setBusy(false);
-          }
-        }}
-      >
-        <h1>
-          Message Relay <span>v3</span>
-        </h1>
-        <label>
-          Email
-          <input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        </label>
-        <label>
-          Password
-          <input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        </label>
-        {error && <p className="error">{error}</p>}
-        <button disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
-      </form>
-    </main>
+    <>
+      <header className="topbar">
+        <span className="brand">Message Relay <span>v3</span></span>
+      </header>
+      <main className="landing">
+        <h1>Message Relay <span>v3</span></h1>
+        <p className="muted">Webhook URLs in, live chats out. The URL is the auth. PocketBase underneath.</p>
+        <section className="card landing-usage">
+          <h2>Usage</h2>
+          <pre><code>POST {base}/w/{"{name}"}/{"{token}"}</code></pre>
+          <p className="muted">Webhook URLs are generated on the Endpoints page. LINE, GitHub or any JSON: the relay tells which it is.</p>
+        </section>
+        <form
+          className="card landing-login"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setBusy(true);
+            setError("");
+            try {
+              await signIn(email, password);
+            } catch {
+              setError("Wrong email or password.");
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          <h2>Sign in</h2>
+          <input type="email" placeholder="Email" aria-label="Email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <input type="password" placeholder="Password" aria-label="Password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          {error && <p className="error">{error}</p>}
+          <button disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
+        </form>
+      </main>
+    </>
   );
 }
