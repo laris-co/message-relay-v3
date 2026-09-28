@@ -38,6 +38,8 @@ async function retry<T>(f: () => Promise<T>): Promise<T> {
   }
 }
 
+const update = (id: string, data: Record<string, unknown>) => retry(() => pb.collection("attachments").update(id, data));
+
 // ── fetch ─────────────────────────────────────────────────────────────────
 class Gone extends Error {}
 
@@ -77,7 +79,22 @@ async function one(a: Att) {
   data.status = failed ? "failed" : got ? "stored" : "gone"; // gone: every source 404/410, or none at all
   if (wants.length === 0 && !got) errors.push("no https source");
   data.error = errors.join("; ").slice(0, 500);
-  await retry(() => pb.collection("attachments").update(a.id, data));
+  try {
+    await update(a.id, data);
+  } catch (e) {
+    // one rejected record must not stop the run: retry once (a concurrent write, e.g. the cron hook
+    // taking the same row), then record why and move on (--retry-failed picks it up again)
+    await Bun.sleep(1500);
+    try {
+      await update(a.id, data);
+    } catch (e2) {
+      const why = e2 instanceof ClientResponseError ? `${e2.status} ${JSON.stringify(e2.response?.data ?? {})}` : String(e2);
+      console.log(`  update rejected ${a.id}: ${why.slice(0, 300)}`);
+      await update(a.id, { status: "failed", error: ("upload rejected: " + why).slice(0, 500) }).catch(() => {});
+      stats.failed++;
+      return;
+    }
+  }
   stats[data.status as "stored" | "gone" | "failed"]++;
   if (failed && stats.failed <= 20) console.log(`  failed ${a.id}: ${data.error}`);
 }
