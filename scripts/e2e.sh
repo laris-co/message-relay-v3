@@ -68,6 +68,8 @@ check "ha-login, allowed HA user" "$(curl -s $URL/api/relay/ha-login -H 'X-Ingre
 check "anonymous sees none" "$(curl -s "$URL/api/collections/messages/records" | jq .totalItems)" "0"
 check "anonymous groups view" "$(curl -s "$URL/api/collections/timeline_groups/records" | jq .totalItems)" "0"
 check "groups view" "$(curl -s "$URL/api/collections/timeline_groups/records?filter=provider%3D%22example%22" -H "authorization: $TOK" | jq -c '[.totalItems, .items[0].n]')" "[1,1]"
+check "anonymous chats view" "$(curl -s "$URL/api/collections/chats/records" | jq .totalItems)" "0"
+check "chats view: newest message, channels" "$(curl -s "$URL/api/collections/chats/records?filter=group_id%3D%22G1%22" -H "authorization: $TOK" | jq -c '[.totalItems, .items[0].n, .items[0].channels, .items[0].last_sender, .items[0].last_text]')" '[1,2,"newbot","Alice","again"]'
 check "promoted sender_picture" "$(curl -s "$URL/api/collections/messages/records?filter=provider%3D%22example%22&fields=sender_picture" -H "authorization: $TOK" | jq -r '.items[0].sender_picture')" "https://example.invalid/p.webp"
 check "anonymous create" "$(curl -s -o /dev/null -w '%{http_code}' -XPOST $URL/api/collections/messages/records -H 'content-type: application/json' -d '{"provider":"x","source_event_id":"y","ts":"2026-01-01 00:00:00Z"}')" "403"
 check "ui served" "$(curl -s -o /dev/null -w '%{http_code}' $URL/)" "200"

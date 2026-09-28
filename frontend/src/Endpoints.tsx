@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { pb } from "./pb.ts";
-import { Header, Icon } from "./ui.tsx";
+import { CopyButton, Header, Icon, SourceBadge } from "./ui.tsx";
 
 // Webhook endpoints (superusers only): add a bot, get its URL to paste into LINE / GitHub. The URL
 // base is PocketBase's Settings → Application → Application URL (the public address), else this page's.
@@ -45,21 +45,23 @@ export function Endpoints({ nav }: { nav: ReactNode }) {
   return (
     <div className="app">
     <Header nav={nav} />
-    <div className="endpoints">
-      <h2>Webhook endpoints</h2>
+    <main className="endpoints">
+      <h1>Endpoints</h1>
+      <p className="muted">Where webhooks come in: one URL per bot or repo. Paste it into LINE, GitHub or anything that can POST.</p>
       {!baseSet && (
         <p className="warn">No public Application URL yet: URLs below use this page's address ({base}). Set the public one in
           {" "}<a href="./_/#/settings" target="_blank" rel="noreferrer">Settings → Application</a>.</p>
       )}
+      <div className="card flush">
       <table>
         <tbody>
           {rows.map((e) => (
             <tr key={e.id} className={e.enabled ? "" : "off"}>
-              <td><span className={`prov p-${e.kind}`}>{e.kind}</span></td>
+              <td><SourceBadge provider={e.kind} /></td>
               <td>{e.name}</td>
               <td><code>{urlOf(e)}</code></td>
               <td>
-                <button className="btn" onClick={() => navigator.clipboard.writeText(urlOf(e))}>Copy URL</button>
+                <CopyButton text={urlOf(e)} label="Copy URL" />
                 <button className="btn quiet" onClick={() => pb.collection("endpoints").update(e.id, { enabled: !e.enabled }).then(load)}>
                   {e.enabled ? "Disable" : "Enable"}
                 </button>
@@ -69,8 +71,10 @@ export function Endpoints({ nav }: { nav: ReactNode }) {
           {!rows.length && <tr><td colSpan={4} className="muted">No endpoints yet. Add the first one below.</td></tr>}
         </tbody>
       </table>
+      </div>
 
       <form
+        className="card"
         onSubmit={async (ev) => {
           ev.preventDefault();
           setError("");
@@ -104,14 +108,14 @@ export function Endpoints({ nav }: { nav: ReactNode }) {
       </form>
       {error && <p className="error">{error}</p>}
       {shown && (
-        <div className="shown">
-          <p>URL: <code>{shown.url}</code> <button className="btn" onClick={() => navigator.clipboard.writeText(shown.url)}>Copy</button></p>
+        <div className="card shown">
+          <p>URL: <code>{shown.url}</code> <CopyButton text={shown.url} /></p>
           {shown.secret && (
-            <p>Secret (shown once): <code>{shown.secret}</code> <button className="btn" onClick={() => navigator.clipboard.writeText(shown.secret)}>Copy</button></p>
+            <p>Secret (shown once): <code>{shown.secret}</code> <CopyButton text={shown.secret} /></p>
           )}
         </div>
       )}
-    </div>
+    </main>
     </div>
   );
 }

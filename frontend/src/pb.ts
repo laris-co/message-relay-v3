@@ -54,14 +54,31 @@ export function openDashboard() {
   window.open(url.href, "_blank", "noopener");
 }
 
-export interface Facet {
+/** One conversation (the `chats` view collection): provider + group, across every channel it came in on. */
+export interface Chat {
+  id: string;
   provider: string;
-  channel: string;
   group_id: string;
   group_label: string;
+  /** the channels it came in on, comma-separated ("hermes,hermes2") */
+  channels: string;
   n: number;
+  first_ts: string;
   last_ts: string;
+  last_sender: string;
+  last_text: string;
 }
+
+/** A conversation's identity. */
+export type ChatRef = Pick<Chat, "provider" | "group_id">;
+export const chatKey = (c: ChatRef) => `${c.provider}/${c.group_id}`;
+export const sameChat = (a: ChatRef, b: ChatRef) => a.provider === b.provider && a.group_id === b.group_id;
+
+/** Messages are read a page at a time, with the fields the UI shows and their attachments. */
+export const PAGE = 50;
+export const FIELDS =
+  "id,collectionId,ts,provider,endpoint,channel,group_id,group_label,sender,sender_label,type,text,reply_to,source_event_id," +
+  "sender_picture,media_kind,thumb_url,media_url,expand.attachments_via_message";
 
 export async function signIn(email: string, password: string): Promise<void> {
   try {
@@ -72,9 +89,9 @@ export async function signIn(email: string, password: string): Promise<void> {
   }
 }
 
-/** The filter panel: the `timeline_groups` view collection (one row per provider / channel / group). */
-export async function facets(): Promise<Facet[]> {
-  return pb.collection("timeline_groups").getFullList<Facet>({ sort: "-last_ts", batch: 1000 });
+/** Every conversation, newest activity first. */
+export async function chats(): Promise<Chat[]> {
+  return pb.collection("chats").getFullList<Chat>({ sort: "-last_ts", batch: 1000 });
 }
 
 export interface Alias { id: string; collectionId: string; collectionName: string; kind: "sender" | "group"; provider: string; value: string; label: string; picture: string; picture_url: string }

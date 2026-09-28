@@ -5,7 +5,8 @@
 [![Open the add-on in my Home Assistant](https://my.home-assistant.io/badges/supervisor_addon.svg)](https://my.home-assistant.io/redirect/supervisor_addon/?addon=86a9cd73_message_relay_v3&repository_url=https%3A%2F%2Fgithub.com%2Flaris-co%2Fmessage-relay-v3)
 <!-- /ha-buttons -->
 
-A deliberately small message relay: webhooks in, one **messages** collection, one live **timeline**.
+A deliberately small message relay: webhooks in, one **messages** collection, and a live UI to read them: **Chats**
+(the list of conversations, one open at a time) and **Stream** (every message, newest first).
 [PocketBase](https://pocketbase.io) is the whole backend (DB, auth, API, realtime, admin UI): the
 **stock `pocketbase` binary**, unmodified. Everything of ours is JavaScript: migrations for the schema,
 a few JS hooks for what must run on the server, and the PocketBase JS SDK everywhere else. No Go.
@@ -28,7 +29,7 @@ pb_hooks/         JS hooks inside PocketBase (server-side only because they must
                     create hook (message with media -> attachments row), cron (fetch newest pending)
   lib/              relay.js (pure mapping + signatures, unit-tested), store.js, media.js, boot.js
 frontend/         React + pocketbase SDK
-  src/              timeline: newest first, infinite scroll, only/hide filter, search, realtime
+  src/              Chats (conversation list + one chat, filter chips, search) and Stream (everything, newest first), live
   dist/             the build (committed; served by PocketBase --publicDir)
 mcp-ts/           read-only MCP server (pocketbase SDK): recent · search · groups
 scripts/          import-v2.ts (v2 -> v3), media-fetch.ts (SDK: bulk picture backlog), e2e.sh
@@ -65,14 +66,14 @@ PocketBase file storage (the pictures) at that bucket, and nightly backups at a 
 from `RELAY_S3_*` in `.env`, with the keys read from `pass` (entry names are set in `.env`, see the justfile). To stay
 on local disk, leave `RELAY_S3_ENDPOINT` empty.
 
-**Endpoints.** Add a bot on the timeline's **Endpoints** page (superusers): pick LINE / GitHub / generic and a name, and
+**Endpoints.** Add a bot on the **Endpoints** page (superusers): pick LINE / GitHub / generic and a name, and
 you get the webhook URL to paste, `<Application URL>/w/<kind>/<name>`. The URL base comes from PocketBase's Settings →
 Application URL. For LINE, paste the channel secret. For GitHub and generic, a secret is generated and shown once. It
 takes effect at once, with no restart. Secrets live in the `endpoints` collection (a hidden field, superusers only). Env
 vars still work as a fallback, and the add-on options set them.
 
 **Aliases.** The `aliases` collection maps an id to a name (`kind` sender | group, `provider`, `value`, `label`, plus a
-sender photo as a PocketBase `file`). Click a name in the timeline to rename it. A hook relabels every message with that
+sender photo as a PocketBase `file`). Click a sender's name, or **Rename** on a chat, to name it. A hook relabels every message with that
 id, and new messages get their label on create. The migration seeds it from the names already in `messages`.
 
 Webhook secrets never go in committed files.
@@ -102,7 +103,11 @@ A redelivery, or a re-run import, stores nothing new.
 - Nobody can create, update or delete through the API. Rows come only through the routes above.
 - Change the schema by adding a JS migration in `pb_migrations/` (`pocketbase migrate create <name> --migrationsDir pb_migrations`).
   With `just dev`, dashboard changes also write a migration file there (automigrate); commit it.
-- `timeline_groups` (view collection): one row per provider / channel / group with `n` and `last_ts`: the filter panel.
+- `chats` (view collection): one row per conversation (provider + group, across every channel it came in on) with
+  its `channels`, `n`, `first_ts` / `last_ts` and its newest message (`last_sender`, `last_text`): the Chats list and
+  its filter chips.
+- `timeline_groups` (view collection): one row per provider / channel / group with `n` and `last_ts`, for the MCP
+  server and the scripts.
 - **Querying JSON.** Everything the source sent stays in `raw`; filter it with dot paths (`raw.media.kind = "video"`),
   which scans every row (~0.5 s at 230k). Fields queried often are promoted: a migration adds the column + index and
   backfills from `raw`, and `pb_hooks/lib/promote.js` copies it on create (so far: `sender_picture`; indexed:

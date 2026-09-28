@@ -7,7 +7,7 @@
 //   POST /w/generic/{endpoint}  any JSON / text              Bearer or x-relay-token
 //   The secret: the enabled `endpoints` row (kind, name), else env LINE_SECRET_<EP> / GITHUB_SECRET[_<EP>] /
 //   GENERIC_TOKEN[_<EP>] (the add-on options).
-// The filter panel reads the `timeline_groups` view collection (a migration), not a route.
+// The UI reads the `chats` view collection (a migration), not a route.
 //   POST /api/relay/import      {rows:[v2 /api/messages rows], labels:{"<provider>\t<group>": label}} (superuser)
 // Webhooks answer 200 {new, duplicate}; 401 bad signature; 404 unknown/unconfigured endpoint.
 
