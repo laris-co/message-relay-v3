@@ -51,12 +51,17 @@ if [ "${UI}" != "bundled" ]; then
     esac
     rm -rf /data/ui/new /tmp/ui.zip && mkdir -p /data/ui/new
     if curl -fsSL --max-time 60 -o /tmp/ui.zip "${URL}" && unzip -q /tmp/ui.zip -d /data/ui/new && [ -f /data/ui/new/index.html ]; then
+        find /data/ui/new -type f -exec touch {} +  # now, not the build date: never answered 304 with an older page
         rm -rf /data/ui/current && mv /data/ui/new /data/ui/current
         bashio::log.info "UI: ${UI} (${URL})"
     else
         bashio::log.warning "UI: could not load ${URL}; keeping the $([ -f /data/ui/current/index.html ] && echo last loaded || echo bundled) one"
     fi
-    [ -f /data/ui/current/index.html ] && PUBLIC=/data/ui/current
+    if [ -f /data/ui/current/index.html ]; then
+        PUBLIC=/data/ui/current
+        # for the in-app update check (pb_hooks/lib/uiupdate.js)
+        export RELAY_UI_DIR=/data/ui RELAY_UI_CHANNEL="${UI}"
+    fi
 fi
 
 exec /app/pocketbase serve --dir /data/pb_data --migrationsDir /app/pb_migrations --hooksDir /app/pb_hooks \

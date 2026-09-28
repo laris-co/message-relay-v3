@@ -72,6 +72,25 @@ routerUse((e) => {
   return e.next();
 });
 
+// UI updates (lib/uiupdate.js): which UI release runs and which is out; a superuser swaps a newer one in
+// place (no restart). The check (every 15 min) also tells Home Assistant (a persistent notification).
+routerAdd("GET", "/api/relay/ui", (e) => e.json(200, require(`${__hooks}/lib/uiupdate.js`).status(e.app, false)), $apis.requireAuth());
+routerAdd(
+  "POST",
+  "/api/relay/ui/update",
+  (e) => {
+    try {
+      return e.json(200, require(`${__hooks}/lib/uiupdate.js`).update(e.app));
+    } catch (err) {
+      return e.json(500, { error: String(err) });
+    }
+  },
+  $apis.requireSuperuserAuth(),
+);
+cronAdd("ui-check", "*/15 * * * *", () => {
+  require(`${__hooks}/lib/uiupdate.js`).status($app, true);
+});
+
 // Home Assistant ingress auto-login (lib/halogin.js: trusted only from the ingress proxy's address).
 routerAdd("GET", "/api/relay/ha-login", (e) => require(`${__hooks}/lib/halogin.js`).haLogin(e));
 

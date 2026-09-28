@@ -76,6 +76,9 @@ check "groups view" "$(curl -s "$URL/api/collections/timeline_groups/records?fil
 check "anonymous chats view" "$(curl -s "$URL/api/collections/chats/records" | jq .totalItems)" "0"
 check "chats view: newest message, channels" "$(curl -s "$URL/api/collections/chats/records?filter=group_id%3D%22G1%22" -H "authorization: $TOK" | jq -c '[.totalItems, .items[0].n, .items[0].channels, .items[0].last_sender, .items[0].last_text]')" '[1,2,"newbot","Alice","again"]'
 check "promoted sender_picture" "$(curl -s "$URL/api/collections/messages/records?filter=provider%3D%22example%22&fields=sender_picture" -H "authorization: $TOK" | jq -r '.items[0].sender_picture')" "https://example.invalid/p.webp"
+check "ui status anonymous (401)" "$(curl -s -o /dev/null -w '%{http_code}' $URL/api/relay/ui)" "401"
+check "ui status here: not managed" "$(curl -s $URL/api/relay/ui -H "authorization: $TOK" | jq -c '[.managed, .update]')" "[false,false]"
+check "ui update without a managed UI (500)" "$(curl -s -o /dev/null -w '%{http_code}' -XPOST $URL/api/relay/ui/update -H "authorization: $TOK")" "500"
 check "anonymous create" "$(curl -s -o /dev/null -w '%{http_code}' -XPOST $URL/api/collections/messages/records -H 'content-type: application/json' -d '{"provider":"x","source_event_id":"y","ts":"2026-01-01 00:00:00Z"}')" "403"
 check "ui served" "$(curl -s -o /dev/null -w '%{http_code}' $URL/)" "200"
 check "ui shell not cacheable stale" "$(curl -s -D - -o /dev/null $URL/ | tr -d '\r' | awk -F': ' 'tolower($1)=="cache-control"{print $2}')" "no-cache"
