@@ -60,6 +60,17 @@ cronAdd("avatars-fetch", "* * * * *", () => {
   if (r.checked) console.log(`avatars-fetch: ${JSON.stringify(r)}`);
 });
 
+// The UI must never come from a stale cache: every build renames its bundle, and a cached old
+// index.html asks for a bundle that is gone (the SPA fallback then answers HTML and nothing mounts —
+// seen on the first add-on update). no-cache = always revalidate (a cheap 304 when unchanged).
+routerUse((e) => {
+  const p = e.request.url.path;
+  if (!p.startsWith("/api/") && !p.startsWith("/w/") && !p.startsWith("/_/")) {
+    e.response.header().set("Cache-Control", "no-cache");
+  }
+  return e.next();
+});
+
 // Home Assistant ingress auto-login (lib/halogin.js: trusted only from the ingress proxy's address).
 routerAdd("GET", "/api/relay/ha-login", (e) => require(`${__hooks}/lib/halogin.js`).haLogin(e));
 

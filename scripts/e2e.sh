@@ -71,4 +71,6 @@ check "groups view" "$(curl -s "$URL/api/collections/timeline_groups/records?fil
 check "promoted sender_picture" "$(curl -s "$URL/api/collections/messages/records?filter=provider%3D%22example%22&fields=sender_picture" -H "authorization: $TOK" | jq -r '.items[0].sender_picture')" "https://example.invalid/p.webp"
 check "anonymous create" "$(curl -s -o /dev/null -w '%{http_code}' -XPOST $URL/api/collections/messages/records -H 'content-type: application/json' -d '{"provider":"x","source_event_id":"y","ts":"2026-01-01 00:00:00Z"}')" "403"
 check "ui served" "$(curl -s -o /dev/null -w '%{http_code}' $URL/)" "200"
+check "ui shell not cacheable stale" "$(curl -s -D - -o /dev/null $URL/ | tr -d '\r' | awk -F': ' 'tolower($1)=="cache-control"{print $2}')" "no-cache"
+check "api untouched by the cache rule" "$(curl -s -D - -o /dev/null $URL/api/health | tr -d '\r' | awk -F': ' 'tolower($1)=="cache-control"{print $2}' | head -1 | grep -c no-cache)" "0"
 exit $fail
