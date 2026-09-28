@@ -208,12 +208,12 @@ export function FirstRun({ canAdd, onAdd }: { canAdd: boolean; onAdd: () => void
     <section className="first-run" aria-labelledby="first-run-title">
       <h2 id="first-run-title">No messages yet</h2>
       <p>
-        Messages arrive by webhook. Add an endpoint, paste its URL into LINE, GitHub or anything that can POST, and every
-        message shows up here the moment it lands.
+        Messages arrive by webhook. Generate a URL on the Endpoints page, paste it into LINE, GitHub or anything that
+        can POST, and every message shows up here the moment it lands.
       </p>
-      <pre className="pattern"><span className="muted">POST</span> …/w/<b>line</b>|<b>github</b>|<b>generic</b>/<b>&lt;name&gt;</b></pre>
+      <pre className="pattern"><span className="muted">POST</span> …/w/<b>&lt;name&gt;</b>/<b>&lt;token&gt;</b></pre>
       {canAdd ? (
-        <button className="btn primary" onClick={onAdd}><Icon name="plus" /> Add an endpoint</button>
+        <button className="btn primary" onClick={onAdd}><Icon name="plus" /> Generate a webhook URL</button>
       ) : (
         <p className="muted">An admin adds endpoints on the Endpoints page.</p>
       )}
