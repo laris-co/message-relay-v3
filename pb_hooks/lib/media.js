@@ -21,9 +21,12 @@ function link(app, msg) {
 
 const https = (s) => typeof s === "string" && s.indexOf("https://") === 0;
 
-/** Download up to `n` newest pending attachments: thumb, and the file itself for images. */
+/** Download up to `n` pending attachments created in the last 2 h: thumb, and the file for images. */
 function fetchPending(app, n) {
-  const rows = app.findRecordsByFilter("attachments", 'status = "pending"', "-created", n, 0);
+  // only recent arrivals: the backlog (the migration's 130k rows share one created time) belongs to
+  // scripts/media-fetch.ts, and both working the same rows made concurrent updates collide
+  const since = new Date(Date.now() - 2 * 3600e3).toISOString().replace("T", " ");
+  const rows = app.findRecordsByFilter("attachments", 'status = "pending" && created >= {:since}', "-created", n, 0, { since });
   let stored = 0, gone = 0, failed = 0;
   for (const a of rows) {
     const wants = [];

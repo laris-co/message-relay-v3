@@ -49,7 +49,7 @@ onRecordAfterCreateSuccess((e) => {
   e.next();
 }, "messages");
 
-// Newest pending attachments, every minute, a few at a time (the bulk backlog: scripts/media-fetch.ts).
+// New pending attachments (last 2 h), every minute, a few at a time (the backlog: scripts/media-fetch.ts).
 cronAdd("attachments-fetch", "* * * * *", () => {
   const r = require(`${__hooks}/lib/media.js`).fetchPending($app, 30);
   if (r.checked) console.log(`attachments-fetch: ${JSON.stringify(r)}`);
