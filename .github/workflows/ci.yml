@@ -1,0 +1,25 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: stock pocketbase (for the e2e check)
+        run: |
+          curl -fsSL https://github.com/pocketbase/pocketbase/releases/download/v0.40.4/pocketbase_0.40.4_linux_amd64.zip -o /tmp/pb.zip
+          echo "9042ec818570e79c3628dadcd0a756c1496d9e1173918ec409d133c02f82e5fa  /tmp/pb.zip" | sha256sum -c -
+          sudo unzip -q /tmp/pb.zip pocketbase -d /usr/local/bin
+      - uses: oven-sh/setup-bun@v2
+      - uses: extractions/setup-just@v2
+      - run: cd frontend && bun install --frozen-lockfile
+      - run: cd mcp-ts && bun install --frozen-lockfile
+      # frontend/dist is committed (the add-on image copies it): fail when it is stale
+      - name: dist is up to date
+        run: |
+          cd frontend && bun run build
+          git diff --exit-code -- dist || (echo "frontend/dist is stale: run 'just ui-build' and commit" && exit 1)
+      - run: just test

@@ -1,0 +1,8 @@
+.claude/INCUBATED_BY
+pb_data/
+bin/
+node_modules/
+.env
+.env.*
+*.log
+node_modules/

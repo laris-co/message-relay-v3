@@ -1,0 +1,15 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "message-relay-v3-scripts",
+      "dependencies": {
+        "pocketbase": "^0.28.1",
+      },
+    },
+  },
+  "packages": {
+    "pocketbase": ["pocketbase@0.28.1", "", {}, "sha512-/3ihkq+rvfcs0MQgrK4sEElOg6gfenHW9S/O+3BSO+V1yT+4B10+9aT22uTQUPqze9ItwNtwWyY5ZmdgVCTdVA=="],
+  }
+}

@@ -1,0 +1,4 @@
+# Home Assistant add-on store: add this repo's URL under Settings → Add-ons → Add-on Store → ⋮ → Repositories.
+name: message-relay v3
+url: https://github.com/laris-co/message-relay-v3
+maintainer: laris-co

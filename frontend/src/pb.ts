@@ -1,0 +1,63 @@
+import PocketBase from "pocketbase";
+
+// The app is served by the relay itself, at / or under Home Assistant ingress
+// (/api/hassio_ingress/<token>/): the API is wherever this page is.
+const base = new URL(".", window.location.href).href.replace(/\/$/, "");
+
+export const pb = new PocketBase(import.meta.env.DEV ? window.location.origin : base);
+pb.autoCancellation(false);
+
+// A token the server no longer accepts (expired, or signed by a data dir that was reset) still
+// looks valid in the browser: any 401 signs out, so the login form shows instead of an empty timeline.
+pb.afterSend = (response, data) => {
+  if (response.status === 401 && pb.authStore.token) pb.authStore.clear();
+  return data;
+};
+
+/** On load: ask the server whether the stored token is still good (the browser can't tell). */
+export async function checkAuth(): Promise<void> {
+  const rec = pb.authStore.record;
+  if (!pb.authStore.isValid || !rec) return;
+  try {
+    await pb.collection(rec.collectionName).authRefresh();
+  } catch {
+    pb.authStore.clear();
+  }
+}
+
+export interface Facet {
+  provider: string;
+  channel: string;
+  group_id: string;
+  group_label: string;
+  n: number;
+  last_ts: string;
+}
+
+export async function signIn(email: string, password: string): Promise<void> {
+  try {
+    await pb.collection("users").authWithPassword(email, password);
+  } catch {
+    // a superuser can read the timeline too
+    await pb.collection("_superusers").authWithPassword(email, password);
+  }
+}
+
+/** The filter panel: the `timeline_groups` view collection (one row per provider / channel / group). */
+export async function facets(): Promise<Facet[]> {
+  return pb.collection("timeline_groups").getFullList<Facet>({ sort: "-last_ts", batch: 1000 });
+}
+
+export interface Alias { id: string; collectionId: string; collectionName: string; kind: "sender" | "group"; provider: string; value: string; label: string; picture: string; picture_url: string }
+
+/** Every alias, keyed "<kind>\t<provider>\t<value>". */
+export async function aliases(): Promise<Map<string, Alias>> {
+  const rows = await pb.collection("aliases").getFullList<Alias>({ batch: 1000 });
+  return new Map(rows.map((a) => [`${a.kind}\t${a.provider}\t${a.value}`, a]));
+}
+
+/** Name an id (sender or group). A hook relabels every message of that id. */
+export async function saveAlias(kind: "sender" | "group", provider: string, value: string, label: string, existing?: Alias) {
+  if (existing) return pb.collection("aliases").update(existing.id, { label });
+  return pb.collection("aliases").create({ kind, provider, value, label });
+}

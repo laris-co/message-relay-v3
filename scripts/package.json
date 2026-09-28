@@ -1,0 +1,8 @@
+{
+  "name": "message-relay-v3-scripts",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "pocketbase": "^0.28.1"
+  }
+}
