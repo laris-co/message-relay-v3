@@ -11,6 +11,7 @@ trap 'kill $PID 2>/dev/null || true; rm -rf "$DIR"' EXIT
 
 # a clean env: never the caller's .env (just loads it) — only what this test sets
 env -u RELAY_S3_ENDPOINT -u RELAY_PUBLIC_URL -u GITHUB_SECRET -u GENERIC_TOKEN \
+RELAY_INGRESS_AUTO_LOGIN=true RELAY_INGRESS_PEER=127.0.0.1 RELAY_HA_USER_IDS=ha-user-1 \
 RELAY_ADMIN_EMAIL=e2e@relay.test RELAY_ADMIN_PASSWORD=e2e-password-123 \
 LINE_SECRET_E2EBOT=line-e2e GITHUB_SECRET=gh-e2e GENERIC_TOKEN=gen-e2e \
   "$BIN" serve --dir "$DIR" --migrationsDir pb_migrations --hooksDir pb_hooks --publicDir frontend/dist \
@@ -60,6 +61,10 @@ check "alias relabels old" "$(curl -s "$URL/api/collections/messages/records?fil
 curl -s -XPOST $URL/w/generic/newbot -H 'authorization: Bearer runtime-tok' -d '{"text":"again","from":"Uxyz","chat":"G1"}' >/dev/null
 check "alias labels new" "$(curl -s "$URL/api/collections/messages/records?filter=text%3D%22again%22&fields=sender_label" -H "authorization: $TOK" | jq -r '.items[0].sender_label')" "Alice"
 check "stored rows now" "$(curl -s "$URL/api/collections/messages/records?perPage=1" -H "authorization: $TOK" | jq .totalItems)" "7"
+# HA ingress auto-login (the "ingress proxy" is 127.0.0.1 in this test)
+check "ha-login without HA headers" "$(curl -s -o /dev/null -w '%{http_code}' $URL/api/relay/ha-login)" "403"
+check "ha-login, HA user not allowed" "$(curl -s -o /dev/null -w '%{http_code}' $URL/api/relay/ha-login -H 'X-Ingress-Path: /api/hassio_ingress/x' -H 'X-Remote-User-Id: ha-user-2')" "403"
+check "ha-login, allowed HA user" "$(curl -s $URL/api/relay/ha-login -H 'X-Ingress-Path: /api/hassio_ingress/x' -H 'X-Remote-User-Id: ha-user-1' | jq -r '[(.token|length>20), .record.email] | @csv')" 'true,"e2e@relay.test"'
 check "anonymous sees none" "$(curl -s "$URL/api/collections/messages/records" | jq .totalItems)" "0"
 check "anonymous groups view" "$(curl -s "$URL/api/collections/timeline_groups/records" | jq .totalItems)" "0"
 check "groups view" "$(curl -s "$URL/api/collections/timeline_groups/records?filter=provider%3D%22example%22" -H "authorization: $TOK" | jq -c '[.totalItems, .items[0].n]')" "[1,1]"

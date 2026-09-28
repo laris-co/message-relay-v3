@@ -62,7 +62,8 @@ main { min-width: 0; }
 .bar input { flex: 1; max-width: 560px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
 .live { color: var(--muted); font-size: 12px; }
 .live.on { color: var(--accent); }
-.link { background: none; border: 0; color: var(--muted); margin-left: auto; }
+.link { background: none; border: 0; color: var(--muted); }
+.live + .link { margin-left: auto; }
 
 .timeline { list-style: none; margin: 0; padding: 0 20px; max-width: 900px; }
 .day { position: sticky; top: 53px; margin: 0; padding: 14px 0 6px; font-size: 12px; font-weight: 600; color: var(--muted); background: var(--bg); text-transform: uppercase; letter-spacing: 0.04em; }

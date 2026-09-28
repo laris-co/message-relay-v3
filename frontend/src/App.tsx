@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { aliases as loadAliases, checkAuth, pb, facets as loadFacets, saveAlias, signIn, type Alias, type Facet } from "./pb.ts";
+import { aliases as loadAliases, checkAuth, haLogin, openDashboard, pb, facets as loadFacets, saveAlias, signIn, type Alias, type Facet } from "./pb.ts";
 import { Endpoints } from "./Endpoints.tsx";
 import { buildFilter, emptyFilter, insertByTime, isEmpty, matches, olderThan, stateOf, toggle, type Dim, type Filter, type MessageRecord } from "./filter.ts";
 
@@ -11,8 +11,17 @@ const FIELDS =
 export function App() {
   const [authed, setAuthed] = useState(pb.authStore.isValid);
   useEffect(() => pb.authStore.onChange(() => setAuthed(pb.authStore.isValid)), []);
-  useEffect(() => void checkAuth(), []);
+  // a stored session is checked with the server; without one, try the Home Assistant session (ingress)
+  const [starting, setStarting] = useState(true);
+  useEffect(() => {
+    void (async () => {
+      await checkAuth();
+      if (!pb.authStore.isValid) await haLogin();
+      setStarting(false);
+    })();
+  }, []);
   const [page, setPage] = useState<"timeline" | "endpoints">("timeline");
+  if (!authed && starting) return <main className="login"><p className="type">Signing in…</p></main>;
   if (!authed) return <Login />;
   return (
     <>
@@ -260,6 +269,11 @@ function Timeline() {
           <span className={live ? "live on" : "live"} title={live ? "Receiving new messages" : "Not connected"}>
             {live ? "● live" : "○ reconnecting…"}
           </span>
+          {pb.authStore.isSuperuser && (
+            <button className="link" onClick={openDashboard} title="PocketBase dashboard (collections, logs, backups, settings)">
+              PocketBase ↗
+            </button>
+          )}
           <button className="link" onClick={() => pb.authStore.clear()}>
             Sign out
           </button>

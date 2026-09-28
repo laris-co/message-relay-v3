@@ -137,3 +137,26 @@ describe("v2Message", () => {
 test("clipText keeps at most 100000 characters", () => {
   expect(relay.clipText("ก".repeat(100005)).length).toBe(100000);
 });
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const ha = require("../pb_hooks/lib/halogin.js");
+
+describe("HA ingress auto-login decision", () => {
+  const base = { enabled: true, peer: "172.30.32.2", trustedPeer: "172.30.32.2", userId: "u1", ingressPath: "/api/hassio_ingress/t", allowlist: [] as string[] };
+  test("peerHost", () => {
+    expect(ha.peerHost("172.30.32.2:51234")).toBe("172.30.32.2");
+    expect(ha.peerHost("[::1]:8080")).toBe("::1");
+    expect(ha.peerHost("")).toBe("");
+  });
+  test("only from the ingress proxy, with an HA identity", () => {
+    expect(ha.decide(base)).toEqual({ ok: true });
+    expect(ha.decide({ ...base, enabled: false }).status).toBe(404);
+    expect(ha.decide({ ...base, peer: "100.111.101.21" })).toEqual({ status: 403, error: "not via Home Assistant ingress" }); // headers from the tailnet: refused
+    expect(ha.decide({ ...base, userId: "" }).status).toBe(403);
+    expect(ha.decide({ ...base, ingressPath: "" }).status).toBe(403);
+  });
+  test("allowlist", () => {
+    expect(ha.decide({ ...base, allowlist: ha.parseAllowlist(" u1 , u2 ") })).toEqual({ ok: true });
+    expect(ha.decide({ ...base, allowlist: ["u9"] }).error).toBe("HA user not allowed");
+  });
+});

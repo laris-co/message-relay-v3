@@ -60,6 +60,9 @@ cronAdd("avatars-fetch", "* * * * *", () => {
   if (r.checked) console.log(`avatars-fetch: ${JSON.stringify(r)}`);
 });
 
+// Home Assistant ingress auto-login (lib/halogin.js: trusted only from the ingress proxy's address).
+routerAdd("GET", "/api/relay/ha-login", (e) => require(`${__hooks}/lib/halogin.js`).haLogin(e));
+
 routerAdd("POST", "/w/line/{endpoint}", (e) => require(`${__hooks}/lib/ingress.js`).ingress(e, "line"));
 routerAdd("POST", "/w/github/{endpoint}", (e) => require(`${__hooks}/lib/ingress.js`).ingress(e, "github"));
 routerAdd("POST", "/w/generic/{endpoint}", (e) => require(`${__hooks}/lib/ingress.js`).ingress(e, "generic"));

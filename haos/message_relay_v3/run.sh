@@ -14,6 +14,8 @@ opt() {
 export RELAY_ADMIN_EMAIL="$(opt admin_email)"
 export RELAY_ADMIN_PASSWORD="$(opt admin_password)"
 export RELAY_PUBLIC_URL="$(opt public_url)"
+export RELAY_INGRESS_AUTO_LOGIN="$(bashio::config 'auto_login')"
+export RELAY_HA_USER_IDS="$(opt ha_user_ids)"
 export GITHUB_SECRET="$(opt github_secret)"
 export GENERIC_TOKEN="$(opt generic_token)"
 export RELAY_S3_ENDPOINT="$(opt s3_endpoint)"

@@ -116,6 +116,13 @@ A redelivery, or a re-run import, stores nothing new.
 3. Install **Message Relay v3**. Set `admin_email`, `admin_password`, `line_channels`, and the other secrets in
    Configuration, then start it. The timeline appears in the sidebar through ingress. Webhooks use port 8789.
 
+**Inside Home Assistant.** Already signed in to HA? Opening the **Relay v3** sidebar panel signs you in to the relay
+as its admin, with no second password (`auto_login`, on by default). It's trusted only when the connection comes from
+Supervisor's ingress proxy (172.30.32.2), never from the published port, and can be limited with `ha_user_ids`
+(comma-separated HA user ids). **PocketBase ↗** in the top bar opens this relay's PocketBase dashboard, already signed
+in. PocketBase 0.40 keeps the dashboard login under a path-scoped key, so it doesn't clash with the other PocketBase
+add-ons on the same HA.
+
 **Visibility.** Supervisor clones add-on stores and pulls images anonymously, so the repo and both GHCR packages
 (`{amd64,aarch64}-addon-message-relay-v3`) must be public. A fork that stays private needs a public store repo plus
 `ha docker registries add ghcr.io` with a `read:packages` token.

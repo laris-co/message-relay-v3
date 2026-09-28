@@ -27,6 +27,28 @@ export async function checkAuth(): Promise<void> {
   }
 }
 
+/** Inside Home Assistant (ingress): sign in as the relay admin with the HA session. false elsewhere. */
+export async function haLogin(): Promise<boolean> {
+  try {
+    const r = await pb.send<{ token: string; record: Record<string, unknown> }>("/api/relay/ha-login", { method: "GET" });
+    pb.authStore.save(r.token, r.record as never);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** The PocketBase dashboard of this relay, in a new tab — signed in already when we are a superuser:
+ * PocketBase 0.40's dashboard keeps its login under "__pb_superusers__" + its own path. */
+export function openDashboard() {
+  const url = new URL("./_/", pb.baseURL.replace(/\/?$/, "/"));
+  if (pb.authStore.isSuperuser) {
+    const key = "__pb_superusers__" + url.pathname.replace(/\/$/, "");
+    localStorage.setItem(key, JSON.stringify({ token: pb.authStore.token, record: pb.authStore.record }));
+  }
+  window.open(url.href, "_blank", "noopener");
+}
+
 export interface Facet {
   provider: string;
   channel: string;
