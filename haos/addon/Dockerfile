@@ -1,5 +1,5 @@
 # Built from the REPO ROOT (context .), by .github/workflows/addon-image.yml or `just image`:
-#   docker build -f haos/message_relay_v3/Dockerfile --build-arg BUILD_ARCH=amd64 .
+#   docker build -f haos/addon/Dockerfile --build-arg BUILD_ARCH=amd64 .
 # The stock PocketBase release binary (sha256-pinned) + our JS migrations, JS hooks and the built
 # UI. No Go, no Node: frontend/dist is committed. The download happens on the build host; the final
 # stage only copies files, so no emulation is needed for aarch64.
@@ -32,5 +32,5 @@ COPY --from=pocketbase /out/pocketbase /app/pocketbase
 COPY pb_migrations /app/pb_migrations
 COPY pb_hooks /app/pb_hooks
 COPY frontend/dist /app/public
-COPY haos/message_relay_v3/run.sh /run.sh
+COPY haos/addon/run.sh /run.sh
 CMD ["/run.sh"]

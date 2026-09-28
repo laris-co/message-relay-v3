@@ -83,4 +83,4 @@ mcp:
 
 # Build the add-on image locally for one arch (CI builds and pushes both to GHCR).
 image arch="amd64":
-    docker build --platform linux/{{arch}} --build-arg BUILD_ARCH={{arch}} -f haos/message_relay_v3/Dockerfile -t message-relay-v3:{{arch}} .
+    docker build --platform linux/{{arch}} --build-arg BUILD_ARCH={{arch}} -f haos/addon/Dockerfile -t message-relay-v3:{{arch}} .

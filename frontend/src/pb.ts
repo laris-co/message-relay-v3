@@ -4,9 +4,14 @@ import PocketBase, { LocalAuthStore } from "pocketbase";
 // (/api/hassio_ingress/<token>/): the API is wherever this page is.
 const base = new URL(".", window.location.href).href.replace(/\/$/, "");
 
-// Our own storage key: under Home Assistant ingress every add-on panel shares HA's origin, and other
-// PocketBase panels (the SDK default key "pocketbase_auth") would overwrite this login and vice versa.
-export const pb = new PocketBase(import.meta.env.DEV ? window.location.origin : base, new LocalAuthStore("message_relay_v3_auth"));
+// Our own storage key, scoped to where this app is served: under Home Assistant ingress every add-on
+// panel shares HA's origin, so other PocketBase panels (SDK default "pocketbase_auth") — and a second
+// copy of this app made from the template — would otherwise overwrite this login. The ingress path
+// is fixed per installed add-on.
+export const pb = new PocketBase(
+  import.meta.env.DEV ? window.location.origin : base,
+  new LocalAuthStore("relay_auth:" + new URL(".", window.location.href).pathname),
+);
 pb.autoCancellation(false);
 
 // A token the server no longer accepts (expired, or signed by a data dir that was reset) still

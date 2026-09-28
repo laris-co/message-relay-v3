@@ -1,5 +1,10 @@
 # message-relay v3
 
+<!-- ha-buttons -->
+[![Add the repository to my Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Flaris-co%2Fmessage-relay-v3)
+[![Open the add-on in my Home Assistant](https://my.home-assistant.io/badges/supervisor_addon.svg)](https://my.home-assistant.io/redirect/supervisor_addon/?addon=86a9cd73_message_relay_v3&repository_url=https%3A%2F%2Fgithub.com%2Flaris-co%2Fmessage-relay-v3)
+<!-- /ha-buttons -->
+
 A deliberately small message relay: webhooks in, one **messages** collection, one live **timeline**.
 [PocketBase](https://pocketbase.io) is the whole backend (DB, auth, API, realtime, admin UI): the
 **stock `pocketbase` binary**, unmodified. Everything of ours is JavaScript: migrations for the schema,
@@ -10,7 +15,11 @@ Siblings: v1 [`laris-co/message-relay`](https://github.com/laris-co/message-rela
 v2 [`laris-co/message-relay-v2`](https://github.com/laris-co/message-relay-v2) (LanceDB on RustFS, pollers, imports).
 v3 is the simple counterpart. It does not replace v2's pipelines.
 
-This repo is a **GitHub template**: "Use this template" gives you a new relay repo.
+**Your own copy, with its own name:** click **Use this template → Create a new repository** and name it (e.g.
+`wrw-msg`). On its first push, the `template-init` workflow names the app after the repo: add-on "wrw-msg", HA
+sidebar "wrw-msg", images at `ghcr.io/<you>/{arch}-addon-wrw-msg`, and these buttons pointing at your repo. It then
+builds the images. Make the two new packages public (package settings → Change visibility), then press the button
+above in your repo's README.
 
 ```
 pb_migrations/    the schema, as JS migrations: messages, attachments (run on every start)
@@ -127,7 +136,7 @@ add-ons on the same HA.
 (`{amd64,aarch64}-addon-message-relay-v3`) must be public. A fork that stays private needs a public store repo plus
 `ha docker registries add ghcr.io` with a `read:packages` token.
 
-Release by bumping `version:` in `haos/message_relay_v3/config.yaml`.
+Release by bumping `version:` in `haos/addon/config.yaml`.
 
 ## Not in v3 (by design)
 

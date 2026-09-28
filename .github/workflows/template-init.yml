@@ -1,0 +1,31 @@
+# A repo made with "Use this template": name the app after the new repo, once, then build its images.
+#   nazt/wrw-msg  ->  add-on "wrw-msg" · slug wrw_msg · sidebar "wrw-msg" · ghcr.io/nazt/{arch}-addon-wrw-msg
+# Never runs in the template itself. Idempotent: once named, it does nothing.
+name: template-init
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: write
+jobs:
+  name-this-app:
+    if: github.repository != 'laris-co/message-relay-v3'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        run: echo "todo=$([ "$(yq -r .slug haos/addon/config.yaml)" = message_relay_v3 ] && echo yes || echo no)" >> "$GITHUB_OUTPUT"
+      - if: steps.check.outputs.todo == 'yes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          owner="${GITHUB_REPOSITORY%/*}"; repo="${GITHUB_REPOSITORY#*/}"
+          scripts/rename-app.sh "$owner" "$repo"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore: name this app $repo (template-init)"
+          git push
+          # a push made with GITHUB_TOKEN starts no workflow; a dispatch does
+          gh workflow run addon-image.yml --ref main

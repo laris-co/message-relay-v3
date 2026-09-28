@@ -1,6 +1,7 @@
-# Builds the Home Assistant add-on image per arch and pushes it to GHCR as
-#   ghcr.io/laris-co/{arch}-addon-message-relay-v3:<config.yaml version>   (and :latest)
-# which is what haos/message_relay_v3/config.yaml `image:` names. Bump `version:` to release.
+# Builds the Home Assistant add-on image per arch and pushes it to GHCR as the `image:` in
+# haos/addon/config.yaml names it: ghcr.io/<owner>/{arch}-addon-<repo>:<version> (and :latest).
+# Bump `version:` to release. In a repo made from the template, template-init.yml names the app first;
+# until then the image still points at the template's account and this workflow skips.
 name: addon-image
 on:
   push:
@@ -28,17 +29,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - id: v
-        run: echo "version=$(yq -r .version haos/message_relay_v3/config.yaml)" >> "$GITHUB_OUTPUT"
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
+        run: |
+          image=$(yq -r .image haos/addon/config.yaml)
+          owner=$(echo "$image" | cut -d/ -f2)
+          if [ "$owner" != "$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" ]; then
+            echo "::notice::image $image belongs to another account — run template-init (names this app) first"
+            echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          echo "version=$(yq -r .version haos/addon/config.yaml)" >> "$GITHUB_OUTPUT"
+          echo "image=${image/\{arch\}/${{ matrix.arch }}}" >> "$GITHUB_OUTPUT"
+      - if: steps.v.outputs.skip != 'true'
+        uses: docker/setup-buildx-action@v3
+      - if: steps.v.outputs.skip != 'true'
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@v6
+      - if: steps.v.outputs.skip != 'true'
+        uses: docker/build-push-action@v6
         with:
           context: .
-          file: haos/message_relay_v3/Dockerfile
+          file: haos/addon/Dockerfile
           platforms: ${{ matrix.platform }}
           build-args: |
             BUILD_ARCH=${{ matrix.arch }}
@@ -46,7 +59,7 @@ jobs:
           push: true
           provenance: false
           tags: |
-            ghcr.io/laris-co/${{ matrix.arch }}-addon-message-relay-v3:${{ steps.v.outputs.version }}
-            ghcr.io/laris-co/${{ matrix.arch }}-addon-message-relay-v3:latest
+            ${{ steps.v.outputs.image }}:${{ steps.v.outputs.version }}
+            ${{ steps.v.outputs.image }}:latest
           cache-from: type=gha,scope=${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
