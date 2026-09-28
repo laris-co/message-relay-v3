@@ -1,121 +1,95 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { pb } from "./pb.ts";
-import { CopyButton, Header, Icon, SourceBadge } from "./ui.tsx";
+import { CopyButton, Header } from "./ui.tsx";
 
-// Webhook endpoints (superusers only): add a bot, get its URL to paste into LINE / GitHub. The URL
-// base is PocketBase's Settings → Application → Application URL (the public address), else this page's.
+// Endpoints (superusers), as v1 and v2 do it: type a name, Generate, paste the URL. The URL is the auth
+// (<base>/w/<name>/<token>); LINE, GitHub or anything else is told apart by the body.
+// The URL base is PocketBase's Settings → Application URL (the public address), else this page's.
 
-interface Endpoint { id: string; name: string; kind: "line" | "github" | "generic"; enabled: boolean; note: string }
+interface Endpoint { id: string; name: string; kind: string; token: string; enabled: boolean }
 
-const HELP: Record<Endpoint["kind"], string> = {
-  line: "LINE Developers → Messaging API → Webhook URL. Paste the channel secret here.",
-  github: "Repo / org → Settings → Webhooks → Payload URL (application/json). Secret: the generated one.",
-  generic: "POST JSON or text with header Authorization: Bearer <token>.",
-};
-
-function randomSecret(): string {
-  const b = new Uint8Array(24);
+function randomToken(): string {
+  const b = new Uint8Array(18);
   crypto.getRandomValues(b);
-  return btoa(String.fromCharCode(...b)).replace(/[+/=]/g, "").slice(0, 32);
+  return btoa(String.fromCharCode(...b)).replace(/[+/=]/g, "").slice(0, 24);
 }
 
 export function Endpoints({ nav }: { nav: ReactNode }) {
   const [rows, setRows] = useState<Endpoint[]>([]);
-  const [base, setBase] = useState(window.location.origin);
+  const [base, setBase] = useState(new URL(".", window.location.href).href.replace(/\/$/, ""));
   const [baseSet, setBaseSet] = useState(false);
   const [name, setName] = useState("");
-  const [kind, setKind] = useState<Endpoint["kind"]>("line");
-  const [secret, setSecret] = useState("");
-  const [shown, setShown] = useState<{ url: string; secret: string } | null>(null);
+  const [made, setMade] = useState("");
   const [error, setError] = useState("");
 
-  const load = () => pb.collection("endpoints").getFullList<Endpoint>({ sort: "kind,name" }).then(setRows).catch((e) => setError(String(e)));
+  const load = () => pb.collection("endpoints").getFullList<Endpoint>({ sort: "-created" }).then(setRows).catch((e) => setError(String(e)));
   useEffect(() => {
     void load();
     pb.settings.getAll().then((s) => {
       const u = (s.meta?.appURL || "").replace(/\/$/, "");
-      // PocketBase's placeholder is http://localhost:8090: a loopback address is no public URL
-      const loopback = /^https?:\/\/(localhost|127\.|\[?::1)/i.test(u);
-      if (u && !loopback) (setBase(u), setBaseSet(true));
+      if (u && !/^https?:\/\/(localhost|127\.|\[?::1)/i.test(u)) (setBase(u), setBaseSet(true)); // a loopback address is no public URL
     }).catch(() => {});
   }, []);
 
-  const urlOf = (e: { kind: string; name: string }) => `${base}/w/${e.kind}/${e.name}`;
+  const urlOf = (e: Endpoint) => (e.token ? `${base}/w/${e.name}/${e.token}` : `${base}/w/${e.kind}/${e.name}`);
+
+  const generate = async (ev: React.FormEvent) => {
+    ev.preventDefault();
+    setError("");
+    const n = name.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+/, "");
+    if (!n) return;
+    try {
+      const r = await pb.collection("endpoints").create<Endpoint>({ name: n, kind: "auto", token: randomToken(), enabled: true });
+      setMade(urlOf(r));
+      setName("");
+      void load();
+    } catch (e) {
+      setError(rows.some((x) => x.name === n) ? `“${n}” is taken, pick another name.` : e instanceof Error ? e.message : String(e));
+    }
+  };
 
   return (
     <div className="app">
-    <Header nav={nav} />
-    <main className="endpoints">
-      <h1>Endpoints</h1>
-      <p className="muted">Where webhooks come in: one URL per bot or repo. Paste it into LINE, GitHub or anything that can POST.</p>
-      {!baseSet && (
-        <p className="warn">No public Application URL yet: URLs below use this page's address ({base}). Set the public one in
-          {" "}<a href="./_/#/settings" target="_blank" rel="noreferrer">Settings → Application</a>.</p>
-      )}
-      <div className="card flush">
-      <table>
-        <tbody>
-          {rows.map((e) => (
-            <tr key={e.id} className={e.enabled ? "" : "off"}>
-              <td><SourceBadge provider={e.kind} /></td>
-              <td>{e.name}</td>
-              <td><code>{urlOf(e)}</code></td>
-              <td>
-                <CopyButton text={urlOf(e)} label="Copy URL" />
-                <button className="btn quiet" onClick={() => pb.collection("endpoints").update(e.id, { enabled: !e.enabled }).then(load)}>
-                  {e.enabled ? "Disable" : "Enable"}
-                </button>
-              </td>
-            </tr>
-          ))}
-          {!rows.length && <tr><td colSpan={4} className="muted">No endpoints yet. Add the first one below.</td></tr>}
-        </tbody>
-      </table>
-      </div>
-
-      <form
-        className="card"
-        onSubmit={async (ev) => {
-          ev.preventDefault();
-          setError("");
-          const s = kind === "line" ? secret.trim() : secret.trim() || randomSecret();
-          try {
-            await pb.collection("endpoints").create({ name, kind, secret: s, enabled: true });
-            setShown({ url: urlOf({ kind, name }), secret: kind === "line" ? "" : s });
-            setName("");
-            setSecret("");
-            void load();
-          } catch (e) {
-            setError(e instanceof Error ? e.message : String(e));
-          }
-        }}
-      >
-        <h3>Add endpoint</h3>
-        <select value={kind} onChange={(e) => setKind(e.target.value as Endpoint["kind"])}>
-          <option value="line">LINE</option>
-          <option value="github">GitHub</option>
-          <option value="generic">generic</option>
-        </select>
-        <input placeholder="name (a-z 0-9 - _)" value={name} onChange={(e) => setName(e.target.value)} pattern="[a-z0-9][a-z0-9_-]{0,63}" required />
-        <input
-          placeholder={kind === "line" ? "LINE channel secret" : "secret (empty: generate)"}
-          value={secret}
-          onChange={(e) => setSecret(e.target.value)}
-          required={kind === "line"}
-        />
-        <button className="btn primary"><Icon name="plus" /> Add</button>
-        <p className="muted help">{HELP[kind]}</p>
-      </form>
-      {error && <p className="error">{error}</p>}
-      {shown && (
-        <div className="card shown">
-          <p>URL: <code>{shown.url}</code> <CopyButton text={shown.url} /></p>
-          {shown.secret && (
-            <p>Secret (shown once): <code>{shown.secret}</code> <CopyButton text={shown.secret} /></p>
+      <Header nav={nav} />
+      <main className="endpoints">
+        <h1>Endpoints</h1>
+        <form className="card gen" onSubmit={generate}>
+          <h2>Generate a webhook URL</h2>
+          <div className="gen-row">
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="name, e.g. hermes or my-repo" aria-label="Endpoint name" required autoFocus />
+            <button className="btn primary">Generate</button>
+          </div>
+          <p className="muted">Paste it into LINE (Webhook URL), GitHub (Payload URL) or anything that can POST. The relay tells which it is. The URL is the password: keep it private.</p>
+          {!baseSet && <p className="warn">No public address set, so this uses {base}. Set it in <a href="./_/#/settings" target="_blank" rel="noreferrer">PocketBase → Settings → Application URL</a>.</p>}
+          {made && (
+            <div className="made">
+              <code>{made}</code> <CopyButton text={made} />
+            </div>
           )}
-        </div>
-      )}
-    </main>
+          {error && <p className="error">{error}</p>}
+        </form>
+
+        {rows.length > 0 && (
+          <div className="card flush">
+            <table>
+              <tbody>
+                {rows.map((e) => (
+                  <tr key={e.id} className={e.enabled ? "" : "off"}>
+                    <td className="ep-name">{e.name}</td>
+                    <td><code>{urlOf(e)}</code></td>
+                    <td>
+                      <CopyButton text={urlOf(e)} />
+                      <button className="btn quiet small" onClick={() => pb.collection("endpoints").update(e.id, { enabled: !e.enabled }).then(load)}>
+                        {e.enabled ? "Turn off" : "Turn on"}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </main>
     </div>
   );
 }

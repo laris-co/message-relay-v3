@@ -300,3 +300,14 @@ button.name:hover { text-decoration: underline dotted; text-underline-offset: 3p
   .srow-body { grid-template-columns: minmax(0, 1fr); gap: 2px; }
 }
 @media (prefers-reduced-motion: reduce) { .m.fresh, .srow.fresh { transition: none; } }
+
+/* endpoints: v1's "Generate Webhook URL" */
+.endpoints form.gen { display: grid; gap: 10px; padding: 16px; }
+.gen h2 { margin: 0; font-size: 16px; }
+.gen p { margin: 0; font-size: 13px; }
+.gen-row { display: flex; gap: 8px; }
+.gen-row input { flex: 1; min-width: 0; height: 38px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--bg); font-family: var(--mono); }
+.gen-row .btn { height: 38px; padding: 0 18px; }
+.made { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid var(--accent-line); border-radius: 8px; background: var(--accent-soft); cursor: pointer; }
+.made code { flex: 1; font-size: 13px; word-break: break-all; }
+.ep-name { font-weight: 600; white-space: nowrap; }

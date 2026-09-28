@@ -5,6 +5,7 @@
 //   POST /w/line/{endpoint}     LINE Messaging API webhook   x-line-signature
 //   POST /w/github/{endpoint}   GitHub webhook               x-hub-signature-256
 //   POST /w/generic/{endpoint}  any JSON / text              Bearer or x-relay-token
+//   POST /w/{endpoint}/{token}  any of the above, detected   the URL is the auth
 //   The secret: the enabled `endpoints` row (kind, name), else env LINE_SECRET_<EP> / GITHUB_SECRET[_<EP>] /
 //   GENERIC_TOKEN[_<EP>] (the add-on options).
 // The UI reads the `chats` view collection (a migration), not a route.
@@ -77,6 +78,8 @@ routerAdd("GET", "/api/relay/ha-login", (e) => require(`${__hooks}/lib/halogin.j
 routerAdd("POST", "/w/line/{endpoint}", (e) => require(`${__hooks}/lib/ingress.js`).ingress(e, "line"));
 routerAdd("POST", "/w/github/{endpoint}", (e) => require(`${__hooks}/lib/ingress.js`).ingress(e, "github"));
 routerAdd("POST", "/w/generic/{endpoint}", (e) => require(`${__hooks}/lib/ingress.js`).ingress(e, "generic"));
+// the link: the URL is the auth, the body says what it is (the Endpoints page makes these)
+routerAdd("POST", "/w/{endpoint}/{token}", (e) => require(`${__hooks}/lib/ingress.js`).linkIngress(e));
 
 routerAdd(
   "POST",

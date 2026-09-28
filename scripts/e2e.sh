@@ -54,13 +54,18 @@ check "stored rows" "$(curl -s "$URL/api/collections/messages/records?perPage=1"
 # endpoints collection: a bot added at runtime, no restart, no env
 check "add endpoint" "$(curl -s -XPOST $URL/api/collections/endpoints/records -H "authorization: $TOK" -H 'content-type: application/json' -d '{"name":"newbot","kind":"generic","secret":"runtime-tok","enabled":true}' | jq -r .name)" "newbot"
 check "webhook via endpoint row" "$(curl -s -XPOST $URL/w/generic/newbot -H 'authorization: Bearer runtime-tok' -d '{"text":"hi","from":"Uxyz","chat":"G1"}' | jq -c '[.new,.duplicate]')" "[1,0]"
+LT=$(curl -s -XPOST $URL/api/collections/endpoints/records -H "authorization: $TOK" -H 'content-type: application/json' -d '{"name":"linkbot","kind":"auto","token":"tok123abc","enabled":true}' | jq -r .token)
+check "link endpoint: generic body" "$(curl -s -XPOST $URL/w/linkbot/$LT -d '{"text":"via link","chat":"GL"}' | jq -c '[.new,.duplicate]')" "[1,0]"
+curl -s -XPOST $URL/w/linkbot/$LT -d "$LB" >/dev/null
+check "link endpoint: LINE body detected" "$(curl -s "$URL/api/collections/messages/records?filter=channel%3D%22linkbot%22%26%26provider%3D%22line%22" -H "authorization: $TOK" | jq .totalItems)" "1"
+check "link endpoint: wrong token" "$(curl -s -o /dev/null -w '%{http_code}' -XPOST $URL/w/linkbot/nope -d '{}')" "404"
 check "anonymous endpoints" "$(curl -s -o /dev/null -w '%{http_code}' "$URL/api/collections/endpoints/records")" "403"
 # aliases: relabel existing messages, and label new ones on create
 check "alias create" "$(curl -s -XPOST $URL/api/collections/aliases/records -H "authorization: $TOK" -H 'content-type: application/json' -d '{"kind":"sender","provider":"generic","value":"Uxyz","label":"Alice"}' | jq -r .label)" "Alice"
 check "alias relabels old" "$(curl -s "$URL/api/collections/messages/records?filter=sender%3D%22Uxyz%22&fields=sender_label" -H "authorization: $TOK" | jq -r '.items[0].sender_label')" "Alice"
 curl -s -XPOST $URL/w/generic/newbot -H 'authorization: Bearer runtime-tok' -d '{"text":"again","from":"Uxyz","chat":"G1"}' >/dev/null
 check "alias labels new" "$(curl -s "$URL/api/collections/messages/records?filter=text%3D%22again%22&fields=sender_label" -H "authorization: $TOK" | jq -r '.items[0].sender_label')" "Alice"
-check "stored rows now" "$(curl -s "$URL/api/collections/messages/records?perPage=1" -H "authorization: $TOK" | jq .totalItems)" "7"
+check "stored rows now (+2 via the link)" "$(curl -s "$URL/api/collections/messages/records?perPage=1" -H "authorization: $TOK" | jq .totalItems)" "9"
 # HA ingress auto-login (the "ingress proxy" is 127.0.0.1 in this test)
 check "ha-login without HA headers" "$(curl -s -o /dev/null -w '%{http_code}' $URL/api/relay/ha-login)" "403"
 check "ha-login, HA user not allowed" "$(curl -s -o /dev/null -w '%{http_code}' $URL/api/relay/ha-login -H 'X-Ingress-Path: /api/hassio_ingress/x' -H 'X-Remote-User-Id: ha-user-2')" "403"

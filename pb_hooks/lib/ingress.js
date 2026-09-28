@@ -49,4 +49,45 @@ function ingress(e, kind) {
   return e.json(200, storeAll(e.app, messages));
 }
 
-module.exports = { ingress };
+/** What a body is, when the link does not say: LINE's {destination, events}, a GitHub delivery, else generic. */
+function detectKind(parsed, h) {
+  if (h("x-github-event")) return "github";
+  if (parsed && typeof parsed === "object" && Array.isArray(parsed.events) && "destination" in parsed) return "line";
+  return "generic";
+}
+
+/** POST /w/{endpoint}/{token}: the link is the auth (v1 / v2 style); the body says what it is. */
+function linkIngress(e) {
+  const relay = require(`${__hooks}/lib/relay.js`);
+  const { storeAll } = require(`${__hooks}/lib/store.js`);
+  const crypto = { hs256: $security.hs256, sha256: $security.sha256, equal: $security.equal };
+  const now = () => new Date();
+  const endpoint = e.request.pathValue("endpoint");
+  const token = e.request.pathValue("token");
+  if (!relay.validEndpoint(endpoint) || !token) return e.json(404, { error: "unknown endpoint" });
+  let ep;
+  try {
+    ep = e.app.findFirstRecordByFilter("endpoints", "name = {:n} && enabled = true && token != ''", { n: endpoint });
+  } catch (_) {
+    return e.json(404, { error: "unknown endpoint" });
+  }
+  if (!crypto.equal(ep.getString("token"), token)) return e.json(404, { error: "unknown endpoint" });
+
+  const raw = toString(e.request.body, BODY_MAX);
+  const h = (name) => e.request.header.get(name);
+  let parsed = raw;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (_) {}
+  const kind = detectKind(parsed, h);
+  const headers = { "x-github-event": h("x-github-event"), "x-github-delivery": h("x-github-delivery"), "x-event-id": h("x-event-id") };
+  const messages =
+    kind === "line"
+      ? relay.lineMessages(parsed, endpoint, crypto, now)
+      : kind === "github"
+        ? [relay.githubMessage(parsed, headers, endpoint, raw, crypto, now)]
+        : [relay.genericMessage(parsed, headers, endpoint, raw, crypto, now)];
+  return e.json(200, storeAll(e.app, messages));
+}
+
+module.exports = { ingress, linkIngress, detectKind };
