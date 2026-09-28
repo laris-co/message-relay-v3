@@ -28,6 +28,8 @@ LABEL \
     io.hass.arch="${BUILD_ARCH}" \
     org.opencontainers.image.source="https://github.com/laris-co/message-relay-v3" \
     org.opencontainers.image.description="message-relay v3 Home Assistant add-on"
+# curl + unzip: run.sh fetches the UI release (ui_version) at start
+RUN apk add --no-cache curl unzip
 COPY --from=pocketbase /out/pocketbase /app/pocketbase
 COPY pb_migrations /app/pb_migrations
 COPY pb_hooks /app/pb_hooks

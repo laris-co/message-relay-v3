@@ -4,7 +4,7 @@ description: >-
   messages collection, shown as a live timeline. PocketBase (migrations +
   JS hooks + React UI), stock binary, no custom build; data in /data.
 slug: "message_relay_v3"
-version: "0.1.10"
+version: "0.1.11"
 url: "https://github.com/laris-co/message-relay-v3"
 # Prebuilt by .github/workflows/addon-image.yml ({arch} is substituted by Supervisor).
 # Supervisor pulls anonymously: the package must be public, or the registry added with
@@ -46,6 +46,7 @@ options:
   s3_bucket: "message-relay-v3"
   s3_access_key: ""
   s3_secret: ""
+  ui_version: "latest"
 schema:
   # The PocketBase superuser, created/updated at every start. Set both before the first start.
   admin_email: "str?"
@@ -72,3 +73,6 @@ schema:
   s3_bucket: "str?"
   s3_access_key: "str?"
   s3_secret: "password?"
+  # The UI build to load at start, from laris-co/message-relay-v3-ui releases: "latest", a tag
+  # ("v0.2.0"), a full URL of a dist.zip, or "bundled" (the one in this image). Restart to apply.
+  ui_version: "str?"
