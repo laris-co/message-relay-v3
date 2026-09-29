@@ -148,7 +148,18 @@ function supervisor(method, path) {
 function addonStatus() {
   const d = supervisor("GET", "/addons/self/info");
   if (!d) return { managed: false, slug: "", version: "", latest: "", update: false };
-  return { managed: true, slug: d.slug, version: d.version, latest: d.version_latest, update: !!d.update_available };
+  let notes = "";
+  if (d.update_available) {
+    // the newest version's entry in CHANGELOG.md (the Supervisor serves the store's copy)
+    try {
+      const { token } = env();
+      const res = $http.send({ url: `http://supervisor/addons/${d.slug}/changelog`, headers: { authorization: `Bearer ${token}` }, timeout: 10 });
+      const text = toString(res.body);
+      const at = text.indexOf(`## ${d.version_latest}`);
+      if (at >= 0) notes = text.slice(at).split(/\n## /)[0].split("\n").slice(1).join("\n").trim();
+    } catch (_) {}
+  }
+  return { managed: true, slug: d.slug, version: d.version, latest: d.version_latest, update: !!d.update_available, notes };
 }
 
 /** Ask the Supervisor to update this add-on. It stops and restarts us: the answer may never arrive. */
