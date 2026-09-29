@@ -79,6 +79,7 @@ check "promoted sender_picture" "$(curl -s "$URL/api/collections/messages/record
 check "ui status anonymous (401)" "$(curl -s -o /dev/null -w '%{http_code}' $URL/api/relay/ui)" "401"
 check "ui status here: not managed" "$(curl -s $URL/api/relay/ui -H "authorization: $TOK" | jq -c '[.managed, .update]')" "[false,false]"
 check "ui update without a managed UI (500)" "$(curl -s -o /dev/null -w '%{http_code}' -XPOST $URL/api/relay/ui/update -H "authorization: $TOK")" "500"
+check "addon status outside HA" "$(curl -s $URL/api/relay/addon -H "authorization: $TOK" | jq -c '[.managed, .update]')" "[false,false]"
 check "anonymous create" "$(curl -s -o /dev/null -w '%{http_code}' -XPOST $URL/api/collections/messages/records -H 'content-type: application/json' -d '{"provider":"x","source_event_id":"y","ts":"2026-01-01 00:00:00Z"}')" "403"
 check "ui served" "$(curl -s -o /dev/null -w '%{http_code}' $URL/)" "200"
 check "ui shell not cacheable stale" "$(curl -s -D - -o /dev/null $URL/ | tr -d '\r' | awk -F': ' 'tolower($1)=="cache-control"{print $2}')" "no-cache"

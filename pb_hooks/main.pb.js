@@ -87,6 +87,15 @@ routerAdd(
   },
   $apis.requireSuperuserAuth(),
 );
+// The add-on's own updates (Supervisor): shown in the app, installed by a superuser's click.
+routerAdd("GET", "/api/relay/addon", (e) => {
+  try { return e.json(200, require(`${__hooks}/lib/uiupdate.js`).addonStatus()); }
+  catch (err) { return e.json(502, { error: String(err) }); }
+}, $apis.requireAuth());
+routerAdd("POST", "/api/relay/addon/update", (e) => {
+  try { return e.json(202, require(`${__hooks}/lib/uiupdate.js`).addonUpdate()); }
+  catch (err) { return e.json(500, { error: String(err) }); }
+}, $apis.requireSuperuserAuth());
 cronAdd("ui-check", "*/15 * * * *", () => {
   require(`${__hooks}/lib/uiupdate.js`).status($app, true);
 });

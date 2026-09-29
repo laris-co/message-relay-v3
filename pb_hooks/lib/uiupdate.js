@@ -134,3 +134,31 @@ function update(app) {
 }
 
 module.exports = { versionOf, validTag, isNewer, zipUrl, status, update };
+
+// ── the add-on itself (Home Assistant Supervisor, hassio_api + hassio_role manager) ──
+function supervisor(method, path) {
+  const { token } = env();
+  if (!token) return null;
+  const res = $http.send({ url: `http://supervisor${path}`, method, headers: { authorization: `Bearer ${token}` }, timeout: 20 });
+  if (res.statusCode >= 300) throw new Error(`Supervisor ${path}: HTTP ${res.statusCode}`);
+  return (res.json && res.json.data) || {};
+}
+
+/** {managed, slug, version, latest, update}; managed=false outside Home Assistant. */
+function addonStatus() {
+  const d = supervisor("GET", "/addons/self/info");
+  if (!d) return { managed: false, slug: "", version: "", latest: "", update: false };
+  return { managed: true, slug: d.slug, version: d.version, latest: d.version_latest, update: !!d.update_available };
+}
+
+/** Ask the Supervisor to update this add-on. It stops and restarts us: the answer may never arrive. */
+function addonUpdate() {
+  const s = addonStatus();
+  if (!s.managed) throw new Error("not a Home Assistant add-on");
+  if (!s.update) return s;
+  supervisor("POST", `/store/addons/${s.slug}/update`);
+  return Object.assign({}, s, { updating: true });
+}
+
+module.exports.addonStatus = addonStatus;
+module.exports.addonUpdate = addonUpdate;
